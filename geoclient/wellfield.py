@@ -21,10 +21,13 @@ YES = 'Да'
 NO = 'Нет'
 YES_NO = [YES, NO]
 
+HELP = ['Помощь']
+
 # Можно использовать класс Helper для хранения списка состояний
 class CreationState(Helper):
     mode = HelperMode.snake_case
 
+    LICENSE_AGREEMENT = Item()
     SELECT_APP_VERSION = Item()
     SELECT_WELLFIELD = Item()
     INSERT_PREFIX = Item()
@@ -34,12 +37,13 @@ class CreationState(Helper):
 
 
 def get_app_versions():
-    return get_app_versions_from_geoclient()
+    # return get_app_versions_from_geoclient()
+    return ['developing', 'staging', 'release']
 
 
 def get_wellfields():
-    return get_wellfields_from_geoclient()
-
+    # return get_wellfields_from_geoclient()
+    return ['Месторождение 1', 'Месторождение 2', 'Месторождение 3']
 
 @dp.request_handler(contains=['отмена'])
 async def cancel_operation(alice_request):
@@ -140,16 +144,53 @@ async def insert_prefix(alice_request):
         buttons=YES_NO
     )
 
+
+@dp.request_handler(state=CreationState.LICENSE_AGREEMENT, contains=YES_NO)
+async def handle_any_request(alice_request):
+    user_id = alice_request.session.user_id
+    command = alice_request.request.command
+    if command == YES:
+        buttons = get_app_versions()
+        text = 'Выберите версию приложения, на которой будет создано месторождение.'
+        await dp.storage.set_state(user_id, CreationState.SELECT_APP_VERSION)
+        await dp.storage.update_data(user_id, license_agreement=True)
+    else:
+        buttons = []
+        text = 'Использование навыка отменено.'
+        await dp.storage.reset_state(user_id)
+        await dp.storage.update_data(user_id, license_agreement=False)
+
+       # Предлагаем пользователю список игр
+    return alice_request.response(text, buttons=buttons)
+
+
+@dp.request_handler(state=CreationState.LICENSE_AGREEMENT)
+async def insert_prefix(alice_request):
+    return alice_request.response(
+        'Пожалуйста, ответьте, согласны ли вы с условиями использования навыка.',
+        buttons=YES_NO
+    )
+
+
 @dp.request_handler()
 async def handle_any_request(alice_request):
     user_id = alice_request.session.user_id
-    await dp.storage.set_state(user_id, CreationState.SELECT_APP_VERSION)
-    text = 'Я умею создавать месторождения! На какой версии прототипа это будем делать?'
+    user_data = await dp.storage.get_data(user_id)
+    agreement = user_data.get('license_agreement', False)
     # Если сессия новая, приветствуем пользователя
     if alice_request.session.new:
-        text = 'Привет! ' + text
+        text = 'Привет! Я умею создавать месторождения с использованием геоклиента!' \
+               ' Данный навык является закрытым. Отвечая положительно, Вы подтверждаете, что знаете, что такое геоклиент ' \
+               ' и для чего используется этот навык. Продолжить использование?'
+        await dp.storage.set_state(user_id, CreationState.LICENSE_AGREEMENT)
+        await dp.storage.update_data(user_id, license_agreement=False)
+    else:
+
+        text = 'Хочешь сладких апельсинов?'
+        await dp.storage.set_state(user_id, CreationState.LICENSE_AGREEMENT)
+
     # Предлагаем пользователю список игр
-    return alice_request.response(text, buttons=get_app_versions())
+    return alice_request.response(text, buttons=YES_NO)
 
 
 if __name__ == '__main__':

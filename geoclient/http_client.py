@@ -78,5 +78,6 @@ def _create_wellfield_in_separate_process(app_version, prefix, name):
 
 
 def create_wellfield(app_version, prefix, name):
-    p = mp.Process(target=_create_wellfield_in_separate_process, args=(app_version, prefix, name))
-    p.start()
+    # p = mp.Process(target=_create_wellfield_in_separate_process, args=(app_version, prefix, name))
+    # p.start()
+    pass
