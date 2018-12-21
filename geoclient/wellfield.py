@@ -1,6 +1,4 @@
 import logging
-
-from aiohttp import web
 from aioalice import Dispatcher, get_new_configured_app, types
 from aioalice.dispatcher import MemoryStorage
 from aioalice.utils.helper import Helper, HelperMode, Item
@@ -8,10 +6,6 @@ from geoclient.http_client import get_app_versions_from_geoclient, get_wellfield
     create_wellfield
 from geoclient.text import *
 
-WEBHOOK_URL_PATH = '/'  # webhook endpoint
-
-WEBAPP_HOST = 'localhost'
-WEBAPP_PORT = 1337
 
 logging.basicConfig(format=u'%(filename)s [LINE:%(lineno)d] #%(levelname)-8s [%(asctime)s]  %(message)s',
                     level=logging.INFO)
@@ -50,21 +44,7 @@ async def cancel_operation(alice_request):
     return alice_request.response('Хорошо, прекращаем.')
 
 
-@dp.request_handler(state=CreationState.SELECT_APP_VERSION, contains=get_app_versions())
-async def select_app_version(alice_request):
-    user_id = alice_request.session.user_id
-    await dp.storage.update_data(user_id, app_version=alice_request.request.command)
-    text = 'Отлично! Теперь выбери месторождение которое ты хочешь создать.'
-    await dp.storage.set_state(user_id, CreationState.SELECT_WELLFIELD)
-    return alice_request.response(text, buttons=get_wellfields())
 
-
-@dp.request_handler(state=CreationState.SELECT_APP_VERSION)
-async def select_app_version_not_in_list(alice_request):
-    return alice_request.response(
-        'Такой версии приложения у нас нет :(\nВыбери одну из списка!',
-        buttons=get_app_versions()
-    )
 
 
 @dp.request_handler(state=CreationState.SELECT_WELLFIELD, contains=get_wellfields())
@@ -144,6 +124,25 @@ async def insert_prefix(alice_request):
         'Я тебя не поняла :( \nСкажи да или нет.',
         buttons=YES_NO
     )
+
+#try to choose application version
+@dp.request_handler(state=CreationState.SELECT_APP_VERSION, contains=get_app_versions())
+async def select_app_version(alice_request):
+    user_id = alice_request.session.user_id
+    await dp.storage.update_data(user_id, app_version=alice_request.request.command)
+    text = 'Отлично! Теперь выбери месторождение которое ты хочешь создать.'
+    await dp.storage.set_state(user_id, CreationState.SELECT_WELLFIELD)
+    return alice_request.response(text, buttons=get_wellfields())
+
+
+@dp.request_handler(state=CreationState.SELECT_APP_VERSION)
+async def select_app_version_not_in_list(alice_request):
+    return alice_request.response(
+        'Такой версии приложения у нас нет :(\nВыбери одну из списка!',
+        buttons=get_app_versions()
+    )
+
+
 
 
 # try to create wellfield
@@ -234,11 +233,8 @@ async def handle_any_request(alice_request):
         await dp.storage.set_state(user_id, CreationState.NEED_WELLFIELD)
 
     if alice_request.session.new:
-        text = HELLO + text
+        text = HELLO + ' ' + text
 
     return alice_request.response(text, buttons=YES_NO)
 
 
-if __name__ == '__main__':
-    app = get_new_configured_app(dispatcher=dp, path=WEBHOOK_URL_PATH)
-    web.run_app(app, host=WEBAPP_HOST, port=WEBAPP_PORT)
