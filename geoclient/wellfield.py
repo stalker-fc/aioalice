@@ -4,12 +4,14 @@ from aiohttp import web
 from aioalice import Dispatcher, get_new_configured_app, types
 from aioalice.dispatcher import MemoryStorage
 from aioalice.utils.helper import Helper, HelperMode, Item
-from geoclient.http_client import get_app_versions_from_geoclient, get_wellfields_from_geoclient, is_wellfield_exist, create_wellfield
+from geoclient.http_client import get_app_versions_from_geoclient, get_wellfields_from_geoclient, is_wellfield_exist, \
+    create_wellfield
+from geoclient.text import *
+
 WEBHOOK_URL_PATH = '/'  # webhook endpoint
 
 WEBAPP_HOST = 'localhost'
 WEBAPP_PORT = 1337
-
 
 logging.basicConfig(format=u'%(filename)s [LINE:%(lineno)d] #%(levelname)-8s [%(asctime)s]  %(message)s',
                     level=logging.INFO)
@@ -17,11 +19,6 @@ logging.basicConfig(format=u'%(filename)s [LINE:%(lineno)d] #%(levelname)-8s [%(
 # Создаем экземпляр диспетчера и подключаем хранилище в памяти
 dp = Dispatcher(storage=MemoryStorage())
 
-YES = 'Да'
-NO = 'Нет'
-YES_NO = [YES, NO]
-
-HELP = ['Помощь']
 
 # Можно использовать класс Helper для хранения списка состояний
 class CreationState(Helper):
@@ -36,15 +33,15 @@ class CreationState(Helper):
     CREATE_WELLFIELD = Item()
 
 
-
 def get_app_versions():
     # return get_app_versions_from_geoclient()
-    return ['developing', 'staging', 'releasing']
+    return INIT_VERSIONS
 
 
 def get_wellfields():
     # return get_wellfields_from_geoclient()
-    return ['Месторождение 1', 'Месторождение 2', 'Месторождение 3']
+    return INIT_WELLFIELDS
+
 
 @dp.request_handler(contains=['отмена'])
 async def cancel_operation(alice_request):
@@ -92,7 +89,7 @@ async def insert_prefix(alice_request):
     user_id = alice_request.session.user_id
     await dp.storage.update_data(user_id, prefix=alice_request.request.command)
     data = await dp.storage.get_data(user_id)
-    text = f'Вы точно хотите создать месторождение:\n "[ {data["prefix"]} ] {data["wellfield"]}" \nна {data["app_version"]}-версии приложения?'
+    text = f'Вы точно хотите создать месторождение:\n "[ {data["prefix"]} ] {data["wellfield"]}" \nна {data["app_version"]} версии приложения?'
     await dp.storage.set_state(user_id, CreationState.CONFIRM_WELLFIELD_CREATION)
     return alice_request.response(text, buttons=['Да', 'Нет'])
 
@@ -107,7 +104,7 @@ async def insert_prefix(alice_request):
         if is_wellfield_exist(data["app_version"], data["prefix"], data["wellfield"]):
             text = 'Это месторождение уже существует в базе данных. Создать его заново?'
             await dp.storage.set_state(user_id, CreationState.CREATE_WELLFIELD)
-            buttons=YES_NO
+            buttons = YES_NO
         else:
             text = 'Начинаем инициализировать месторождение...\n Ожидаемое время инициализации 7-10 минут.'
             await dp.storage.reset_state(user_id)
@@ -117,12 +114,14 @@ async def insert_prefix(alice_request):
 
     return alice_request.response(text, buttons=buttons)
 
+
 @dp.request_handler(state=CreationState.CONFIRM_WELLFIELD_CREATION)
 async def insert_prefix(alice_request):
     return alice_request.response(
         'Я тебя не поняла :( \nСкажи да или нет.',
         buttons=YES_NO
     )
+
 
 @dp.request_handler(state=CreationState.CREATE_WELLFIELD, contains=YES_NO)
 async def insert_prefix(alice_request):
@@ -138,6 +137,7 @@ async def insert_prefix(alice_request):
 
     return alice_request.response(text)
 
+
 @dp.request_handler(state=CreationState.CREATE_WELLFIELD)
 async def insert_prefix(alice_request):
     return alice_request.response(
@@ -146,31 +146,64 @@ async def insert_prefix(alice_request):
     )
 
 
+# try to create wellfield
+@dp.request_handler(state=CreationState.NEED_WELLFIELD, contains=YES_NO_CANCEL)
+async def handle_any_request(alice_request):
+    user_id = alice_request.session.user_id
+    command = alice_request.request.command
+    if command == YES:
+        text = 'На какой версии приложения будем создавать месторождение?'
+        buttons = get_app_versions()
+        await dp.storage.set_state(user_id, CreationState.SELECT_APP_VERSION)
+    else:
+        buttons = []
+        text = 'Использование навыка отменено.'
+        await dp.storage.reset_state(user_id)
+
+    return alice_request.response(text, buttons=buttons)
+
+
+@dp.request_handler(state=CreationState.NEED_WELLFIELD, contains=HELP_COMMANDS)
+async def insert_prefix(alice_request):
+    return alice_request.response(
+        REFERENCE,
+        buttons=[CONTINUE]
+    )
+
+@dp.request_handler(state=CreationState.NEED_WELLFIELD)
+async def insert_prefix(alice_request):
+    return alice_request.response(
+        'Если Вы хотите создать месторождение, то ответьте "Да", '
+        'а если нет, то это всегда можно сделать в любое другое время. '
+        'Создать новое месторождение?',
+        buttons=[YES, NO]
+    )
+
+
+# license agreeement
 @dp.request_handler(state=CreationState.LICENSE_AGREEMENT, contains=YES_NO)
 async def handle_any_request(alice_request):
     user_id = alice_request.session.user_id
     command = alice_request.request.command
     if command == YES:
-        buttons = get_app_versions()
-        text = 'Выберите версию приложения, на которой будет создано месторождение.'
-        await dp.storage.set_state(user_id, CreationState.SELECT_APP_VERSION)
+        text = 'Создать новое месторождение?'
+        await dp.storage.set_state(user_id, CreationState.NEED_WELLFIELD)
         await dp.storage.update_data(user_id, license_agreement=True)
+        buttons = YES_NO
     else:
         buttons = []
         text = 'Использование навыка отменено.'
         await dp.storage.reset_state(user_id)
         await dp.storage.update_data(user_id, license_agreement=False)
 
-       # Предлагаем пользователю список игр
+    # Предлагаем пользователю список игр
     return alice_request.response(text, buttons=buttons)
 
 
 @dp.request_handler(state=CreationState.LICENSE_AGREEMENT, contains=['Условия использования'])
 async def insert_prefix(alice_request):
     return alice_request.response(
-        'Данный навык является закрытым. Отвечая положительно,'
-        'Вы подтверждаете, что знаете, что такое геоклиент '
-        'и для чего используется этот навык. Продолжить использование?',
+        LICENSE_MESSAGE,
         buttons=YES_NO
     )
 
@@ -178,21 +211,22 @@ async def insert_prefix(alice_request):
 @dp.request_handler(state=CreationState.LICENSE_AGREEMENT)
 async def insert_prefix(alice_request):
     return alice_request.response(
-        'Пожалуйста, ответьте, согласны ли вы с условиями использования навыка.',
+        'Для дальнейшего использования, пожалуйста, ответьте, согласны ли вы с условиями использования навыка.',
         buttons=[YES, NO, 'Условия использования']
     )
 
 
+# start message
 @dp.request_handler()
 async def handle_any_request(alice_request):
     user_id = alice_request.session.user_id
     user_data = await dp.storage.get_data(user_id)
     agreement = user_data.get('license_agreement', False)
     # Если сессия новая, приветствуем пользователя
+    print(user_data)
     if not agreement:
-        text = 'Я умею создавать месторождения с использованием геоклиента!' \
-               ' Данный навык является закрытым. Отвечая положительно, Вы подтверждаете, что знаете, что такое геоклиент ' \
-               ' и для чего используется этот навык. Продолжить использование?'
+        text = 'Я умею создавать месторождения с использованием геоклиента! ' + LICENSE_MESSAGE
+
         await dp.storage.set_state(user_id, CreationState.LICENSE_AGREEMENT)
         await dp.storage.update_data(user_id, license_agreement=False)
     else:
@@ -200,7 +234,7 @@ async def handle_any_request(alice_request):
         await dp.storage.set_state(user_id, CreationState.NEED_WELLFIELD)
 
     if alice_request.session.new:
-        text = 'Привет!' + text
+        text = HELLO + text
 
     return alice_request.response(text, buttons=YES_NO)
 
