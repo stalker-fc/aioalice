@@ -28,6 +28,7 @@ class CreationState(Helper):
     mode = HelperMode.snake_case
 
     LICENSE_AGREEMENT = Item()
+    NEED_WELLFIELD = Item()
     SELECT_APP_VERSION = Item()
     SELECT_WELLFIELD = Item()
     INSERT_PREFIX = Item()
@@ -38,7 +39,7 @@ class CreationState(Helper):
 
 def get_app_versions():
     # return get_app_versions_from_geoclient()
-    return ['developing', 'staging', 'release']
+    return ['developing', 'staging', 'releasing']
 
 
 def get_wellfields():
@@ -164,11 +165,21 @@ async def handle_any_request(alice_request):
     return alice_request.response(text, buttons=buttons)
 
 
+@dp.request_handler(state=CreationState.LICENSE_AGREEMENT, contains=['Условия использования'])
+async def insert_prefix(alice_request):
+    return alice_request.response(
+        'Данный навык является закрытым. Отвечая положительно,'
+        'Вы подтверждаете, что знаете, что такое геоклиент '
+        'и для чего используется этот навык. Продолжить использование?',
+        buttons=YES_NO
+    )
+
+
 @dp.request_handler(state=CreationState.LICENSE_AGREEMENT)
 async def insert_prefix(alice_request):
     return alice_request.response(
         'Пожалуйста, ответьте, согласны ли вы с условиями использования навыка.',
-        buttons=YES_NO
+        buttons=[YES, NO, 'Условия использования']
     )
 
 
@@ -178,18 +189,19 @@ async def handle_any_request(alice_request):
     user_data = await dp.storage.get_data(user_id)
     agreement = user_data.get('license_agreement', False)
     # Если сессия новая, приветствуем пользователя
-    if alice_request.session.new:
-        text = 'Привет! Я умею создавать месторождения с использованием геоклиента!' \
+    if not agreement:
+        text = 'Я умею создавать месторождения с использованием геоклиента!' \
                ' Данный навык является закрытым. Отвечая положительно, Вы подтверждаете, что знаете, что такое геоклиент ' \
                ' и для чего используется этот навык. Продолжить использование?'
         await dp.storage.set_state(user_id, CreationState.LICENSE_AGREEMENT)
         await dp.storage.update_data(user_id, license_agreement=False)
     else:
+        text = 'Я умею создавать месторождения с использованием геоклиента! Создать новое месторождение?'
+        await dp.storage.set_state(user_id, CreationState.NEED_WELLFIELD)
 
-        text = 'Хочешь сладких апельсинов?'
-        await dp.storage.set_state(user_id, CreationState.LICENSE_AGREEMENT)
+    if alice_request.session.new:
+        text = 'Привет!' + text
 
-    # Предлагаем пользователю список игр
     return alice_request.response(text, buttons=YES_NO)
 
 
