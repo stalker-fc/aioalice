@@ -186,7 +186,7 @@ async def select_wellfield_other(alice_request):
 async def select_app_version(alice_request):
     user_id = alice_request.session.user_id
     await dp.storage.update_data(user_id, app_version=alice_request.request.command)
-    text = 'Отлично! Теперь выбери месторождение которое ты хочешь создать.'
+    text = 'Отлично! Теперь выберите месторождение, которое Вы хотите создать.'
     await dp.storage.set_state(user_id, CreationState.SELECT_WELLFIELD)
     return alice_request.response(text, buttons=get_wellfields())
 
@@ -288,7 +288,7 @@ async def license_message(alice_request):
 @dp.request_handler(state=CreationState.LICENSE_AGREEMENT)
 async def license_other(alice_request):
     return alice_request.response(
-        'Для дальнейшего использования, пожалуйста, ответьте, согласны ли вы с условиями использования навыка.',
+        'Для дальнейшего использования, пожалуйста, ответьте, согласны ли Вы с условиями использования навыка.',
         buttons=[YES, NO, 'Условия использования']
     )
 

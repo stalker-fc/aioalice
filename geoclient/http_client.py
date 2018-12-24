@@ -63,6 +63,9 @@ def get_wellfields_from_geoclient():
 
 
 def is_wellfield_exist(app_version, prefix, name):
+    return False
+
+def _is_wellfield_exist(app_version, prefix, name):
     res = post('/is_wellfield_exist', data=json.dumps(dict(app_version=app_version, name=name, prefix=prefix))).json()
     if res['status'] == 200:
         return res['exist']
