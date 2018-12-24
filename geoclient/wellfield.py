@@ -2,8 +2,6 @@ import logging
 from aioalice import Dispatcher, get_new_configured_app, types
 from aioalice.dispatcher import MemoryStorage
 from aioalice.utils.helper import Helper, HelperMode, Item
-from geoclient.http_client import get_app_versions_from_geoclient, get_wellfields_from_geoclient, is_wellfield_exist, \
-    create_wellfield
 from geoclient.text import *
 
 
@@ -36,6 +34,9 @@ def get_wellfields():
     # return get_wellfields_from_geoclient()
     return INIT_WELLFIELDS
 
+def is_wellfield_exist(app_version, prefix, name):
+    return False
+
 
 #try to create wellfield
 @dp.request_handler(state=CreationState.CREATE_WELLFIELD, contains=YES_NO)
@@ -45,7 +46,7 @@ async def create_wellfield_confirm(alice_request):
     await dp.storage.reset_state(user_id)
     if command == 'Да':
         data = await dp.storage.get_data(user_id)
-        create_wellfield(data["app_version"], data["prefix"], data["wellfield"])
+        # create_wellfield(data["app_version"], data["prefix"], data["wellfield"])
         text = 'Начинаем инициализировать месторождение...\n Ожидаемое время инициализации 7-10 минут.'
     else:
         text = 'Не инициализируем месторождение.'
