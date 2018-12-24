@@ -39,7 +39,7 @@ def get_wellfields():
 
 #try to create wellfield
 @dp.request_handler(state=CreationState.CREATE_WELLFIELD, contains=YES_NO)
-async def insert_prefix(alice_request):
+async def create_wellfield_confirm(alice_request):
     user_id = alice_request.session.user_id
     command = alice_request.request.command
     await dp.storage.reset_state(user_id)
@@ -53,14 +53,14 @@ async def insert_prefix(alice_request):
     return alice_request.response(text)
 
 @dp.request_handler(state=CreationState.CREATE_WELLFIELD, contains=HELP_COMMANDS)
-async def insert_prefix(alice_request):
+async def create_wellfield_help(alice_request):
     return alice_request.response(
         REFERENCE,
         buttons=[CONTINUE_USING]
     )
 
 @dp.request_handler(state=CreationState.CREATE_WELLFIELD)
-async def insert_prefix(alice_request):
+async def create_wellfield_other(alice_request):
     user_id = alice_request.session.user_id
     data = await dp.storage.get_data(user_id)
     wf_name = f'[ {data["prefix"]} ] {data["wellfield"]}" \nна {data["app_version"]} версии приложения'
@@ -73,7 +73,7 @@ async def insert_prefix(alice_request):
 
 #try to confirm wellfield creation
 @dp.request_handler(state=CreationState.CONFIRM_WELLFIELD_CREATION, contains=YES_NO)
-async def insert_prefix(alice_request):
+async def confirm_wellfield_creation_confirm(alice_request):
     user_id = alice_request.session.user_id
     command = alice_request.request.command
     buttons = []
@@ -94,7 +94,7 @@ async def insert_prefix(alice_request):
 
 
 @dp.request_handler(state=CreationState.CONFIRM_WELLFIELD_CREATION, contains='Назвать имя заново')
-async def insert_prefix(alice_request):
+async def confirm_wellfield_creation_repeat_name(alice_request):
     user_id = alice_request.session.user_id
     await dp.storage.set_state(user_id, CreationState.INSERT_PREFIX)
     return alice_request.response(
@@ -102,7 +102,7 @@ async def insert_prefix(alice_request):
 
 
 @dp.request_handler(state=CreationState.CONFIRM_WELLFIELD_CREATION, contains=HELP_COMMANDS)
-async def insert_prefix(alice_request):
+async def confirm_wellfield_creation_help(alice_request):
     return alice_request.response(
         REFERENCE,
         buttons=[CONTINUE_USING]
@@ -110,7 +110,7 @@ async def insert_prefix(alice_request):
 
 
 @dp.request_handler(state=CreationState.CONFIRM_WELLFIELD_CREATION)
-async def insert_prefix(alice_request):
+async def confirm_wellfield_creation_other(alice_request):
     user_id = alice_request.session.user_id
     data = await dp.storage.get_data(user_id)
     wf_name = f'[ {data["prefix"]} ] {data["wellfield"]}" \nна {data["app_version"]} версии приложения'
@@ -124,14 +124,14 @@ async def insert_prefix(alice_request):
 
 #try to choose prefix
 @dp.request_handler(state=CreationState.INSERT_PREFIX, contains=HELP_COMMANDS)
-async def insert_prefix(alice_request):
+async def insert_prefix_help(alice_request):
     return alice_request.response(
         REFERENCE,
         buttons=[CONTINUE_USING]
     )
 
 @dp.request_handler(state=CreationState.INSERT_PREFIX)
-async def insert_prefix(alice_request):
+async def insert_prefix_name(alice_request):
     user_id = alice_request.session.user_id
     await dp.storage.update_data(user_id, prefix=alice_request.request.command)
     data = await dp.storage.get_data(user_id)
@@ -144,7 +144,7 @@ async def insert_prefix(alice_request):
 
 #try to choose wellfield
 @dp.request_handler(state=CreationState.SELECT_WELLFIELD, contains=get_wellfields())
-async def select_wellfield(alice_request):
+async def select_wellfield_version(alice_request):
     user_id = alice_request.session.user_id
     await dp.storage.update_data(user_id, wellfield=alice_request.request.command)
     text = 'Пожалуйста, назовите имя того, для кого нужно создать месторождение.'
@@ -153,28 +153,28 @@ async def select_wellfield(alice_request):
 
 
 @dp.request_handler(state=CreationState.SELECT_WELLFIELD, contains=HELP_COMMANDS)
-async def insert_prefix(alice_request):
+async def select_wellfield_help(alice_request):
     return alice_request.response(
         REFERENCE,
         buttons=[CONTINUE_USING]
     )
 
 @dp.request_handler(state=CreationState.SELECT_WELLFIELD, contains=CONTINUE)
-async def insert_prefix(alice_request):
+async def select_wellfield_continue(alice_request):
     text = 'Какое месторождение будем создавать?'
     buttons = get_wellfields()
     return alice_request.response(text, buttons=buttons)
 
 
 @dp.request_handler(state=CreationState.SELECT_WELLFIELD, contains=CANCEL)
-async def insert_prefix(alice_request):
+async def select_wellfield_cancel(alice_request):
     user_id = alice_request.session.user_id
     await dp.storage.reset_state(user_id)
     return alice_request.response('Использование навыка отменено.')
 
 
 @dp.request_handler(state=CreationState.SELECT_WELLFIELD)
-async def insert_prefix(alice_request):
+async def select_wellfield_other(alice_request):
     return alice_request.response(
         'Если Вы хотите создать месторождение, '
         'то Вам нужно выбрать одно из доступных к инициализации месторождений. ',
@@ -192,7 +192,7 @@ async def select_app_version(alice_request):
 
 
 @dp.request_handler(state=CreationState.SELECT_APP_VERSION, contains=HELP_COMMANDS)
-async def insert_prefix(alice_request):
+async def select_app_help(alice_request):
     return alice_request.response(
         REFERENCE,
         buttons=[CONTINUE_USING]
@@ -200,14 +200,14 @@ async def insert_prefix(alice_request):
 
 
 @dp.request_handler(state=CreationState.SELECT_APP_VERSION, contains=CONTINUE)
-async def insert_prefix(alice_request):
+async def select_app_continue(alice_request):
     text = 'На какой версии приложения будем создавать месторождение?'
     buttons = get_app_versions()
     return alice_request.response(text, buttons=buttons)
 
 
 @dp.request_handler(state=CreationState.SELECT_APP_VERSION, contains=CANCEL)
-async def insert_prefix(alice_request):
+async def select_app_cancel(alice_request):
     user_id = alice_request.session.user_id
     await dp.storage.reset_state(user_id)
     return alice_request.response(
@@ -215,7 +215,7 @@ async def insert_prefix(alice_request):
 
 
 @dp.request_handler(state=CreationState.SELECT_APP_VERSION)
-async def insert_prefix(alice_request):
+async def select_app_other(alice_request):
     return alice_request.response(
         'Если Вы хотите создать месторождение, '
         'то Вам нужно выбрать одну из доступных версий приложения. ',
@@ -225,7 +225,7 @@ async def insert_prefix(alice_request):
 
 # try to create wellfield
 @dp.request_handler(state=CreationState.NEED_WELLFIELD, contains=YES_NO_CANCEL)
-async def handle_any_request(alice_request):
+async def need_wellfield(alice_request):
     user_id = alice_request.session.user_id
     command = alice_request.request.command
     if command.lower() == YES.lower():
@@ -241,14 +241,14 @@ async def handle_any_request(alice_request):
 
 
 @dp.request_handler(state=CreationState.NEED_WELLFIELD, contains=HELP_COMMANDS)
-async def insert_prefix(alice_request):
+async def need_wellfield_help(alice_request):
     return alice_request.response(
         REFERENCE,
         buttons=[CONTINUE_USING]
     )
 
 @dp.request_handler(state=CreationState.NEED_WELLFIELD)
-async def insert_prefix(alice_request):
+async def need_wellfield_other(alice_request):
     return alice_request.response(
         'Если Вы хотите создать месторождение, то ответьте "Да", '
         'а если нет, то это всегда можно сделать в любое другое время. '
@@ -259,7 +259,7 @@ async def insert_prefix(alice_request):
 
 # license agreeement
 @dp.request_handler(state=CreationState.LICENSE_AGREEMENT, contains=YES_NO)
-async def handle_any_request(alice_request):
+async def license_confirm(alice_request):
     user_id = alice_request.session.user_id
     command = alice_request.request.command
     if command.lower() == YES.lower():
@@ -278,7 +278,7 @@ async def handle_any_request(alice_request):
 
 
 @dp.request_handler(state=CreationState.LICENSE_AGREEMENT, contains=['Условия использования'])
-async def insert_prefix(alice_request):
+async def license_message(alice_request):
     return alice_request.response(
         LICENSE_MESSAGE,
         buttons=YES_NO
@@ -286,7 +286,7 @@ async def insert_prefix(alice_request):
 
 
 @dp.request_handler(state=CreationState.LICENSE_AGREEMENT)
-async def insert_prefix(alice_request):
+async def license_other(alice_request):
     return alice_request.response(
         'Для дальнейшего использования, пожалуйста, ответьте, согласны ли вы с условиями использования навыка.',
         buttons=[YES, NO, 'Условия использования']
