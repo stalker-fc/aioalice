@@ -4,7 +4,8 @@ HELLO = 'Привет!'
 YES = 'Да'
 NO = 'Нет'
 CANCEL = 'Отмена'
-CONTINUE = 'Продолжить использование'
+CONTINUE = 'Продолжить'
+CONTINUE_USING = 'Продолжить использование'
 
 
 YES_NO = [YES, NO]
