@@ -6,7 +6,7 @@ NO = 'Нет'
 CANCEL = 'Отмена'
 CONTINUE = 'Продолжить'
 CONTINUE_USING = 'Продолжить использование'
-
+REPEAT = 'Повторить'
 
 YES_NO = [YES, NO]
 YES_NO_CANCEL = [YES, NO, CANCEL]

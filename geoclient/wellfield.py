@@ -52,14 +52,24 @@ async def insert_prefix(alice_request):
 
     return alice_request.response(text)
 
+@dp.request_handler(state=CreationState.CREATE_WELLFIELD, contains=HELP_COMMANDS)
+async def insert_prefix(alice_request):
+    return alice_request.response(
+        REFERENCE,
+        buttons=[CONTINUE_USING]
+    )
 
 @dp.request_handler(state=CreationState.CREATE_WELLFIELD)
 async def insert_prefix(alice_request):
+    user_id = alice_request.session.user_id
+    data = await dp.storage.get_data(user_id)
+    wf_name = f'[ {data["prefix"]} ] {data["wellfield"]}" \nна {data["app_version"]} версии приложения'
     return alice_request.response(
-        'Я тебя не поняла :( \nСкажи да или нет.',
-        buttons=YES_NO
+        'Если Вы хотите создать месторождение:\n'
+        f' {wf_name},\n'
+        ' то ответьте "Да". Для отмены ответьте "Нет".',
+        buttons=[YES, NO]
     )
-
 
 #try to confirm wellfield creation
 @dp.request_handler(state=CreationState.CONFIRM_WELLFIELD_CREATION, contains=YES_NO)
@@ -77,32 +87,58 @@ async def insert_prefix(alice_request):
             text = 'Начинаем инициализировать месторождение...\n Ожидаемое время инициализации 7-10 минут.'
             await dp.storage.reset_state(user_id)
     else:
-        text = 'Не инициализируем месторождение.'
+        text = 'Использование навыка отменено.'
         await dp.storage.reset_state(user_id)
 
     return alice_request.response(text, buttons=buttons)
 
 
-@dp.request_handler(state=CreationState.CONFIRM_WELLFIELD_CREATION)
+@dp.request_handler(state=CreationState.CONFIRM_WELLFIELD_CREATION, contains='Назвать имя заново')
+async def insert_prefix(alice_request):
+    user_id = alice_request.session.user_id
+    await dp.storage.set_state(user_id, CreationState.INSERT_PREFIX)
+    return alice_request.response(
+        'Пожалуйста назовите имя того, для кого требуется проинициализировать месторождение.')
+
+
+@dp.request_handler(state=CreationState.CONFIRM_WELLFIELD_CREATION, contains=HELP_COMMANDS)
 async def insert_prefix(alice_request):
     return alice_request.response(
-        'Я тебя не поняла :( \nСкажи да или нет.',
-        buttons=YES_NO
+        REFERENCE,
+        buttons=[CONTINUE_USING]
     )
 
 
+@dp.request_handler(state=CreationState.CONFIRM_WELLFIELD_CREATION)
+async def insert_prefix(alice_request):
+    user_id = alice_request.session.user_id
+    data = await dp.storage.get_data(user_id)
+    wf_name = f'[ {data["prefix"]} ] {data["wellfield"]}" \nна {data["app_version"]} версии приложения'
+    return alice_request.response(
+        'Если Вы хотите создать месторождение:\n'
+        f' {wf_name},\n'
+        ' то ответьте "Да". Для отмены ответьте "Нет".',
+        buttons=[YES, NO]
+    )
+
 
 #try to choose prefix
+@dp.request_handler(state=CreationState.INSERT_PREFIX, contains=HELP_COMMANDS)
+async def insert_prefix(alice_request):
+    return alice_request.response(
+        REFERENCE,
+        buttons=[CONTINUE_USING]
+    )
+
 @dp.request_handler(state=CreationState.INSERT_PREFIX)
 async def insert_prefix(alice_request):
     user_id = alice_request.session.user_id
     await dp.storage.update_data(user_id, prefix=alice_request.request.command)
     data = await dp.storage.get_data(user_id)
-    text = f'Вы точно хотите создать месторождение:\n "[ {data["prefix"]} ] {data["wellfield"]}" \nна {data["app_version"]} версии приложения?'
+    text = f'Вы точно хотите создать месторождение:\n "[ {data["prefix"]} ] ' \
+        f'{data["wellfield"]}" \nна {data["app_version"]} версии приложения?'
     await dp.storage.set_state(user_id, CreationState.CONFIRM_WELLFIELD_CREATION)
-    return alice_request.response(text, buttons=['Да', 'Нет'])
-
-
+    return alice_request.response(text, buttons=[YES, NO, 'Назвать имя заново'])
 
 
 
@@ -111,7 +147,7 @@ async def insert_prefix(alice_request):
 async def select_wellfield(alice_request):
     user_id = alice_request.session.user_id
     await dp.storage.update_data(user_id, wellfield=alice_request.request.command)
-    text = 'Теперь назови имя того, для кого нужно создать месторождение.'
+    text = 'Пожалуйста, назовите имя того, для кого нужно создать месторождение.'
     await dp.storage.set_state(user_id, CreationState.INSERT_PREFIX)
     return alice_request.response(text)
 
@@ -134,8 +170,7 @@ async def insert_prefix(alice_request):
 async def insert_prefix(alice_request):
     user_id = alice_request.session.user_id
     await dp.storage.reset_state(user_id)
-    return alice_request.response(
-        'Использование навыка отменено.')
+    return alice_request.response('Использование навыка отменено.')
 
 
 @dp.request_handler(state=CreationState.SELECT_WELLFIELD)
