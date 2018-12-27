@@ -3,6 +3,7 @@ from aioalice import Dispatcher, get_new_configured_app, types
 from aioalice.dispatcher import MemoryStorage
 from aioalice.utils.helper import Helper, HelperMode, Item
 from geoclient.text import *
+from .http_client import get_app_versions_from_geoclient, get_wellfields_from_geoclient, create_wellfield
 
 
 logging.basicConfig(format=u'%(filename)s [LINE:%(lineno)d] #%(levelname)-8s [%(asctime)s]  %(message)s',
@@ -26,13 +27,13 @@ class CreationState(Helper):
 
 
 def get_app_versions():
-    # return get_app_versions_from_geoclient()
-    return INIT_VERSIONS
+    return get_app_versions_from_geoclient()
+    # return INIT_VERSIONS
 
 
 def get_wellfields():
-    # return get_wellfields_from_geoclient()
-    return INIT_WELLFIELDS
+    return get_wellfields_from_geoclient()
+    # return INIT_WELLFIELDS
 
 def is_wellfield_exist(app_version, prefix, name):
     return False
@@ -46,7 +47,7 @@ async def create_wellfield_confirm(alice_request):
     await dp.storage.reset_state(user_id)
     if command == 'Да':
         data = await dp.storage.get_data(user_id)
-        # create_wellfield(data["app_version"], data["prefix"], data["wellfield"])
+        create_wellfield(data["app_version"], data["prefix"], data["wellfield"])
         text = 'Начинаем инициализировать месторождение...\n Ожидаемое время инициализации 7-10 минут.'
     else:
         text = 'Не инициализируем месторождение.'
@@ -86,6 +87,7 @@ async def confirm_wellfield_creation_confirm(alice_request):
             buttons = YES_NO
         else:
             text = 'Начинаем инициализировать месторождение...\n Ожидаемое время инициализации 7-10 минут.'
+            create_wellfield(data["app_version"], data["prefix"], data["wellfield"])
             await dp.storage.reset_state(user_id)
     else:
         text = 'Использование навыка отменено.'
